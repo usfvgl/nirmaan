@@ -1,4 +1,4 @@
-# Multiclass Blob Generator
+# Nirmaan: Dataset Generation for Multiclass Scatterplot Studies
 
 A dataset generation tool that allows you to randomly generate a multiclass scatterplot blobs. For more information, check our website:
 
