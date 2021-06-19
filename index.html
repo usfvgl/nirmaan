@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8">
+
+  <title>Multiclass Blob Generator</title>
+
+  <link rel="stylesheet" href="css/all.min.css">
+  <link rel="stylesheet" href="css/bulma.min.css">
+  <link rel="stylesheet" href="css/bulma-tooltip.min.css">
+  <link rel="stylesheet" href="css/nouislider.min.css">
+
+  <script src="js/jquery-3.6.0.min.js"></script>
+  <script src="js/d3.v4.min.js"></script>
+  <script src="js/wNumb.min.js"></script>
+  <script src="js/seedrandom.min.js"></script>
+  <script src="js/nouislider.min.js"></script>
+  <script src="js/chart.js"></script>
+
+  <style>
+  body {
+    color: #333;
+    font-family: "PT Sans", sans-serif;
+  }
+
+  #chart-canvas {
+    position: absolute;
+    z-index: 1;
+  }
+
+  #events-canvas {
+    position: relative;
+    top: 0px;
+    left: 0px;
+    z-index: 2;
+  }
+
+  canvas {
+    padding-bottom: 1em;
+  }
+
+  .c-1-color { background: rgb(27,158,119) !important; }
+  .c-2-color { background: rgb(217,95,2) !important; }
+  .c-3-color { background: rgb(117,112,179)!important; }
+  .c-4-color { background: rgb(231,41,138)!important; }
+  .c-5-color { background: rgb(102,166,30)!important; }
+  .c-6-color { background: rgb(230,171,2)!important; }
+
+  .legend-tag { color: white !important; }
+
+  .slider  {
+    margin-top: 3em;
+    margin-bottom: 4em;
+  }
+
+  .noUi-tooltip {
+    display: none;
+  }
+
+  .noUi-active .noUi-tooltip {
+    display: block;
+  }
+
+  #dropdown-toggle {
+    display: none;
+  }
+
+  #dropdown-toggle:checked ~ #dropdown-menu {
+    display: block;
+  }
+
+  #sampleChart {
+    margin: 2em auto;
+  }
+
+  span[data-tooltip] {
+    border-bottom: unset; /* override bulma-tooltip.min.css */
+  }
+  </style>
+</head>
+
+<body>
+  <!-- title section -->
+  <section class="section">
+    <div class="container">
+      <h1 class="title is-1 has-text-centered">Multiclass Blob Generator</h1>
+      <p class="subtitle is-4 has-text-centered">A dataset generation tool by Allison Wong, Alark Joshi, and Sophie Engle</p>
+
+      <article class="message is-info">
+        <div class="message-body">
+          <p>This tool allows you to generate a multiclass scatterplot dataset with a specific number of classes and blobs. A 'blob' is a set of randomly generated points in a circle around a central x, y coordinate within a given radius. Inspired by the <a href="https://scikit-learn.org/stable/modules/generated/sklearn.datasets.make_blobs.html#sklearn-datasets-make-blobs">make-blobs</a> dataset generator in <a href="https://scikit-learn.org/stable/index.html">scikit-learn</a>.</p>
+        </div>
+      </article>
+
+      <article class="message is-danger is-hidden" id="errorMessage">
+        <div class="message-header">
+          <p>Input Errors</p>
+          <button class="delete" aria-label="delete"></button>
+        </div>
+
+        <div class="message-body"></div>
+      </article>
+    </div>
+  </section>
+
+  <!-- dataset configuration -->
+  <section class="section">
+    <div class="container">
+      <h3 class="title is-3">
+        Dataset Configuration
+        <em class="help has-text-weight-normal">Required</em>
+      </h3>
+
+      <p class="mb-4">The following configuration applies to the entire dataset. Modification to the dataset configuration may reset the per-blob configuration.</p>
+
+      <form id="dataConfig">
+        <!-- row 1: classes, blobs, points -->
+        <div class="columns">
+
+          <!-- classes -->
+          <div class="column">
+            <div class="columns is-mobile is-vcentered">
+              <div class="column">
+                <label class="label has-text-right">
+                  <span># Classes</span>
+                  <span class="icon has-text-info tooltip has-tooltip-arrow" data-tooltip="number of different classes to use">
+                    <i class="fas fa-info-circle"></i>
+                  </span>
+                  <em class="help has-text-weight-normal mt-0">required</em>
+                </label>
+              </div>
+
+              <div class="column">
+                <div class="control">
+                  <div class="select is-fullwidth">
+                    <select id="numClasses">
+                      <option>1</option>
+                      <option selected>2</option>
+                      <option>3</option>
+                      <option>4</option>
+                      <option>5</option>
+                      <option>6</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- blobs -->
+          <div class="column">
+            <div class="columns is-mobile is-vcentered">
+              <div class="column">
+                <label class="label has-text-right">
+                  <span># Blobs</span>
+                  <span class="icon has-text-info tooltip has-tooltip-arrow" data-tooltip="number of distinct blobs to generate">
+                    <i class="fas fa-info-circle"></i>
+                  </span>
+                  <em class="help has-text-weight-normal mt-0">required</em>
+                </label>
+              </div>
+
+              <div class="column">
+                <div class="control">
+                  <div class="select is-fullwidth">
+                    <select id="numBlobs">
+                      <option selected>1</option>
+                      <option>2</option>
+                      <option>3</option>
+                      <option>4</option>
+                      <option>5</option>
+                      <option>6</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- points -->
+          <div class="column">
+            <div class="columns is-mobile is-vcentered">
+              <div class="column">
+                <label class="label has-text-right">
+                  <span># Points per Blob</span>
+                  <span class="icon has-text-info tooltip has-tooltip-arrow" data-tooltip="number of points to generate per blob">
+                    <i class="fas fa-info-circle"></i>
+                  </span>
+                  <em class="help has-text-weight-normal mt-0">required</em>
+                </label>
+              </div>
+
+              <div class="column">
+                <div class="control">
+                  <input class="input" type="text" value="500" id="numPoints" required>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- row 2: min, max, random seed -->
+        <div class="columns">
+
+          <!-- min -->
+          <div class="column">
+            <div class="columns is-mobile is-vcentered">
+              <div class="column">
+                <label class="label has-text-right">
+                  <span>Min Value</span>
+                  <span class="icon has-text-info tooltip has-tooltip-arrow" data-tooltip="minimum value for each blob center">
+                    <i class="fas fa-info-circle"></i>
+                  </span>
+                  <em class="help has-text-weight-normal mt-0">required</em>
+                </label>
+              </div>
+
+              <div class="column">
+                <div class="control">
+                  <input class="input" type="text" value="0.15" id="minVal" required>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- max -->
+          <div class="column">
+            <div class="columns is-mobile is-vcentered">
+              <div class="column">
+                <label class="label has-text-right">
+                  <span>Max Value</span>
+                  <span class="icon has-text-info tooltip has-tooltip-arrow" data-tooltip="maximum value for each blob center">
+                    <i class="fas fa-info-circle"></i>
+                  </span>
+                  <em class="help has-text-weight-normal mt-0">required</em>
+                </label>
+              </div>
+
+              <div class="column">
+                <div class="control">
+                  <input class="input" type="text" value="9.85" id="maxVal" required>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- random seed -->
+          <div class="column">
+            <div class="columns is-mobile is-vcentered">
+              <div class="column">
+                <label class="label has-text-right">
+                  <span>Random Seed</span>
+                  <span class="icon has-text-grey-lighter tooltip has-tooltip-arrow" data-tooltip="seed for random number generation (optional)">
+                    <i class="fas fa-info-circle"></i>
+                  </span>
+                  <em class="help has-text-grey has-text-weight-normal mt-0">optional</em>
+                </label>
+              </div>
+
+              <div class="column">
+                <div class="control">
+                  <input class="input" type="text" id="seed" placeholder="optional">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- row 3: shuffle -->
+        <div class="columns">
+          <!-- shuffle -->
+          <div class="column">
+            <div class="columns is-mobile is-vcentered">
+              <div class="column">
+                <label class="label has-text-right">
+                  <span>Shuffle?</span>
+                  <span class="icon has-text-grey-lighter tooltip has-tooltip-arrow" data-tooltip="randomly shuffle points of the generated dataset (optional)">
+                    <i class="fas fa-info-circle"></i>
+                  </span>
+                  <em class="help has-text-grey has-text-weight-normal mt-0">optional</em>
+                </label>
+              </div>
+
+              <div class="column">
+                <label class="checkbox">
+                  <input type="checkbox" id="shuffle" checked>
+                  Shuffle Points
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- empty -->
+          <div class="column"></div>
+          <div class="column"></div>
+        </div>
+
+        <br/>
+
+        <div class="field">
+          <h3 class="title is-3">
+            <span>Class Distribution Per Blob</span>
+            <em class="help has-text-weight-normal">Required</em>
+          </h3>
+
+          <p class="mb-4">After completing the dataset configuration above, configure the number of points per class for each blob using the sliders below. The center <em>x</em> and <em>y</em> coordinates will be automatically calculated if left blank for <em>all</em> blobs. Otherwise, the center coordinates must be configured for all blobs.</p>
+
+          <div id="sliders">
+          </div>
+        </div>
+
+        <br/>
+
+        <!-- submit -->
+        <div class="field">
+          <div class="control">
+            <button class="button is-link" id="submit">
+              <span class="icon"><i class="fas fa-sync-alt"></i></span>
+              <span>Generate Dataset</span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- json configuration -->
+  <section class="section">
+    <div class="container">
+      <h3 class="title is-3">
+        JSON Configuration
+        <em class="help has-text-grey has-text-weight-normal">Optional</em>
+      </h3>
+
+      <div class="card">
+        <header class="card-header">
+          <p class="card-header-title">View Configuration</p>
+          <a class="card-header-icon card-toggle">
+            <i class="fas fa-angle-down"></i>
+          </a>
+        </header>
+
+        <div class="card-content">
+          <div class="content">
+            <p>Click <strong>Generate Dataset</strong> above to generate a JSON configuration from your current selections.</p>
+            <p>Or, paste in a previously saved JSON configuration and click the <strong>Load Configuration</strong> button below.</p>
+
+            <p><textarea class="textarea is-family-monospace" id="configArea" placeholder="optional"></textarea></p>
+            <p>
+              <button class="button" id="loadConfig">
+                <span class="icon"><i class="fas fa-cog"></i></span>
+                <span>Load Configuration</span>
+              </button>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- dataset visualization -->
+  <section class="section">
+    <div class="container content">
+      <div id="sampleChart"></div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="content has-text-centered">
+      <p>
+        <a href="https://github.com/usfvgl/make-blobs">
+           <i class="fab fa-github-alt"></i>&nbsp;<strong>View Source on Github</strong>
+         </a>
+      </p>
+    </div>
+  </footer>
+
+  <script src="js/makedataset.js"></script>
+  <script src="js/dataset.js"></script>
+</body>
+</html>
