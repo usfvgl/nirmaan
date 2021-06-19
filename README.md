@@ -1,7 +1,8 @@
 # Multiclass Blob Generator
 
-A dataset generation tool that allows you to randomly generate a multiclass scatterplot blobs.
-For more information, check our website: https://vgl.cs.usfca.edu/make-blobs/
+A dataset generation tool that allows you to randomly generate a multiclass scatterplot blobs. For more information, check our website:
+
+<https://vgl.cs.usfca.edu/nirmaan/>
 
 ## Packages
 
